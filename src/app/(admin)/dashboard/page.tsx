@@ -1,5 +1,4 @@
 import Header from '@/app/components/Header';
-// import MagicButton from '@/app/components/MagicButton';
 import React from 'react';
 
 export interface pageProps {}

@@ -1,10 +1,9 @@
-'use client';
-
 import React from 'react';
 
 import { notFound } from 'next/navigation';
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { Company, getCompany, getPromotions } from '@/lib/api';
+
 import getQueryClient from '@/lib/utils/getQueryClient';
 import CompanyInfo from '@/app/components/CompanyInfo';
 import CompanyPromotions from '@/app/components/CompanyPromotions';
@@ -13,7 +12,9 @@ export interface PageProps {
   params: { id: string };
 }
 
-async function prefetchQueries(queryClient: any, params: { id: string }) {
+export default async function Page({ params }: PageProps) {
+  const queryClient = getQueryClient();
+
   await queryClient.prefetchQuery({
     queryKey: ['companies', params.id],
     queryFn: () => getCompany(params.id, { cache: 'no-store' }),
@@ -26,12 +27,6 @@ async function prefetchQueries(queryClient: any, params: { id: string }) {
       getPromotions({ companyId: params.id }, { cache: 'no-store' }),
     staleTime: 10 * 1000,
   });
-}
-
-export default function Page({ params }: PageProps) {
-  const queryClient = getQueryClient();
-
-  prefetchQueries(queryClient, params);
 
   const company = queryClient.getQueryData(['companies', params.id]) as Company;
   if (!company) {
