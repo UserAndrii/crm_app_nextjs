@@ -1,24 +1,55 @@
 'use client';
 
-import React, { useEffect } from 'react';
-// import Header from '@/app/components/Header';
+import React from 'react';
+
 import { notFound } from 'next/navigation';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+import { Company, getCompany, getPromotions } from '@/lib/api';
+import getQueryClient from '@/lib/utils/getQueryClient';
+import CompanyInfo from '@/app/components/CompanyInfo';
+import CompanyPromotions from '@/app/components/CompanyPromotions';
 
 export interface PageProps {
   params: { id: string };
 }
 
-export default function Page({ params }: PageProps) {
-  useEffect(() => {
-    const id = Number.parseInt(params.id);
+async function prefetchQueries(queryClient: any, params: { id: string }) {
+  await queryClient.prefetchQuery({
+    queryKey: ['companies', params.id],
+    queryFn: () => getCompany(params.id, { cache: 'no-store' }),
+    staleTime: 10 * 1000,
+  });
 
-    if (Number.isNaN(id) || id > 15) {
-      notFound();
-    }
-  }, [params.id]);
+  await queryClient.prefetchQuery({
+    queryKey: ['promotions', params.id],
+    queryFn: () =>
+      getPromotions({ companyId: params.id }, { cache: 'no-store' }),
+    staleTime: 10 * 1000,
+  });
+}
+
+export default function Page({ params }: PageProps) {
+  const queryClient = getQueryClient();
+
+  prefetchQueries(queryClient, params);
+
+  const company = queryClient.getQueryData(['companies', params.id]) as Company;
+  if (!company) {
+    notFound();
+  }
+
+  const dehydratedState = dehydrate(queryClient);
+
   return (
-    <div className="py-6 px-10">
-      <p>{`Information about company (${params.id})`}</p>
-    </div>
+    <HydrationBoundary state={dehydratedState}>
+      <div className="py-6 px-10 grid grid-cols-12 gap-5">
+        <div className="col-span-3">
+          <CompanyInfo companyId={params.id} />
+        </div>
+        <div className="col-span-9">
+          <CompanyPromotions companyId={params.id} />
+        </div>
+      </div>
+    </HydrationBoundary>
   );
 }
